@@ -20,6 +20,7 @@
 
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-primary fw-bold text-white border-primary-subtle" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasBudget">Төсөв тогтоох</button>
+                <button class="btn btn-sm btn-outline-warning fw-bold" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasBadges">Шагналууд</button>
                 <span class="text-light small" id="user-email">...</span>
 
                 <button class="btn btn-outline-light btn-sm" id="btn-logout">
@@ -221,6 +222,38 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasBadges" aria-labelledby="offcanvasBadgesLabel">
+        <div class="offcanvas-header bg-warning">
+            <h5 class="offcanvas-title fw-bold"
+                id="offcanvasBadgesLabel">
+                Миний шагналууд
+            </h5>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="offcanvas"
+                    aria-label="Close">
+            </button>
+        </div>
+
+        <div class="offcanvas-body">
+
+            <p class="text-secondary small mb-4">
+                Таны санхүүгийн идэвх, зорилго биелэлтээр авсан шагналууд.
+            </p>
+
+            <div id="badges-container">
+
+                <div class="text-center py-3 text-muted small bg-light rounded">
+                    Одоогоор шагнал аваагүй байна.
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
