@@ -6,24 +6,30 @@ const txCategoryInput = document.getElementById('tx-category');
 const txAmountInput = document.getElementById('tx-amount');
 const txDateInput = document.getElementById('tx-date');
 const txDescInput = document.getElementById('tx-desc');
+const btnLogout = document.getElementById('btn-logout');
 
 document.addEventListener('DOMContentLoaded', async () => {
-    
     const { data: { user }, error } = await supabase.auth.getUser();
-
     if (error || !user) {
         window.location.href = 'index.html';
         return;
-        }
+    }
 
-    document.getElementById('user-email').textContent = user.email;
+    const emailDisplay = document.getElementById('user-email');
+    const btnLogout = document.getElementById('btn-logout');
+
+    if (emailDisplay) emailDisplay.textContent = user.email;
+
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+        });
+    }
 
     await fetchTransactions();
     await fetchBadges();
-
-    if (typeof fetchBudgets === 'function') {
-        await fetchBudgets();
-    }
+    await fetchBudgets();
 });
 
 transactionForm.addEventListener('submit', async (e) => {
@@ -291,7 +297,6 @@ budgetForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Supabase-ийн 'budgets' хүснэгт рүү хадгалах
     const { error } = await supabase
         .from('budgets')
         .insert([
@@ -311,13 +316,11 @@ budgetForm.addEventListener('submit', async (e) => {
 
         await checkBudgetBadges(user.id);
         await fetchBadges();
-        const instance = bootstrap.Offcanvas.getInstance(
-            document.getElementById('offcanvasBudget')
-        );
 
-        const instance = bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasBudget'));
+        const offcanvasElement = document.getElementById('offcanvasBudget');
+        const instance = bootstrap.Offcanvas.getInstance(offcanvasElement) || new bootstrap.Offcanvas(offcanvasElement);
         
-        // Доор бичих төсвийн жагсаалтыг шинэчлэх функцийг дуудна
+        instance.hide();
         if (typeof fetchBudgets === 'function') fetchBudgets();
     }
 });
