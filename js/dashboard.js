@@ -1,47 +1,47 @@
+// supabase холболтоо импортлож оруулж ирнэ
 import { supabase } from './supabase.js'
 
+// Дэлгэц дээрх HTML элементүүдийг JS хувьсагчид оноож авах
 const transactionForm = document.getElementById('transaction-form');
 const txTypeInput = document.getElementById('tx-type');
 const txCategoryInput = document.getElementById('tx-category');
 const txAmountInput = document.getElementById('tx-amount');
 const txDateInput = document.getElementById('tx-date');
 const txDescInput = document.getElementById('tx-desc');
-const btnLogout = document.getElementById('btn-logout');
 
+// Хуудас бэлэн болж, ачаалагдаж дуусах үед ажиллах хэсэг
 document.addEventListener('DOMContentLoaded', async () => {
+    
+    // Хамгийн түрүүнд хэрэглэгч нэвтэрсэн эсэхийг шалгана
     const { data: { user }, error } = await supabase.auth.getUser();
+
     if (error || !user) {
+        // Хэрэв нэвтрээгүй байвал шууд нэвтрэх хуудас руу буцаана
         window.location.href = 'index.html';
         return;
     }
 
-    const emailDisplay = document.getElementById('user-email');
-    const btnLogout = document.getElementById('btn-logout');
+    // Хэрэглэгч нэвтэрсэн нь үнэн бол имэйлийг нь navbar дээр харуулна
+    document.getElementById('user-email').textContent = user.email;
 
-    if (emailDisplay) emailDisplay.textContent = user.email;
-
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            window.location.href = 'index.html';
-        });
-    }
-
-    await fetchTransactions();
-    await fetchBadges();
-    await fetchBudgets();
+    await fetchTransactions(); 
+    // Доор бичих төсвийн жагсаалтыг шинэчлэх функцийг дуудна
+    if (typeof fetchBudgets === 'function') fetchBudgets();
 });
 
 transactionForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Хуудас Refresh хийгдэхийг зогсооно
 
+    // Талбаруудаас хэрэглэгчийн оруулсан утгуудыг уншиж авах
     const type = txTypeInput.value;
     const category = txCategoryInput.value;
-    const amount = parseFloat(txAmountInput.value);
+    const amount = parseFloat(txAmountInput.value); // Текстийг тоо болгож хөрвүүлнэ
     const date = txDateInput.value;
     const description = txDescInput.value;
 
+    // Гүйлгээ нэмэх гэж буй нэвтэрсэн хэрэглэгчийн мэдээллийг Supabase-ээс авах
     const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // console.log(user)
 
     if (userError || !user) {
         alert("Сешн дууссан байна. Дахин нэвтэрнэ үү!");
@@ -72,7 +72,7 @@ transactionForm.addEventListener('submit', async (e) => {
             // Энэ сард, энэ ангилалд урьд нь хийгдсэн бүх зарлагуудын нийлбэрийг Supabase-с татах
             const { data: pastExpenses } = await supabase
                 .from('transactions')
-                .select('amount, date')
+                .select('amount')
                 .eq('user_id', user.id)
                 .eq('type', 'expense')
                 .eq('category', category);
@@ -123,14 +123,10 @@ transactionForm.addEventListener('submit', async (e) => {
         console.error("Алдааны дэлгэрэнгүй:", error);
     } else {
         alert("Гүйлгээ амжилттай бүртгэгдлээ!");
-
-        transactionForm.reset();
-
-        await checkTransactionBadges(user.id);
-
-        await fetchTransactions();
-        await fetchBadges();
+        transactionForm.reset(); // Формын бүх талбарыг цэвэрлэж хоосон болгоно
     }
+    // Хуудас ачаалагдаж дуусах үед өгөгдлийг уншиж ирж харуулна
+    fetchTransactions();
 });
 
 // Өгөгдлийн сангаас гүйлгээ уншиж, хүснэгтэд харуулах функц
@@ -151,6 +147,7 @@ async function fetchTransactions() {
         return;
     }
 
+    // Мөнгөн дүнг тооцоолох хэсэг
     let totalIncome = 0;
     let totalExpense = 0;
 
@@ -163,6 +160,7 @@ async function fetchTransactions() {
         }
     });
 
+    // Үлдэгдэл баланс = Нийт Орлого - Нийт Зарлага
     const totalBalance = totalIncome - totalExpense;
 
     // Бодсон дүнг HTML карт руу бичих
@@ -220,27 +218,30 @@ function renderTransactions(transactions) {
     listContainer.innerHTML = htmlContent;
 }
 
+// Гүйлгээ устгах функц (Дэлгэц дээрх устгах товч дарагдахад ажиллана)
 window.deleteTransaction = async function(id) {
+    // Хэрэглэгчээс үнэхээр устгах эсэхийг нь лавлаж асууна
     const confirmDelete = confirm("Та энэ гүйлгээг устгахдаа итгэлтэй байна уу?");
     
     if (!confirmDelete) {
-        return;
+        return; // Хэрэв "Үгүй" гэвэл устгах үйлдлийг цуцалж, функцээс гарна
     }
 
     try {
+        // Supabase өгөгдлийн сангаас тухайн ID-тай гүйлгээг устгах
         const { error } = await supabase
             .from('transactions')
-            .delete()
-            .eq('id', id);
+            .delete() // SQL-ийн DELETE команд
+            .eq('id', id); // Зөвхөн энэ ID-тай мөрийг устга гэдэг шүүлтүүр
 
         if (error) {
-            throw error;
+            throw error; // Хэрэв алдаа гарвал catch хэсэг рүү шиднэ
         }
 
         alert("Гүйлгээ амжилттай устгагдлаа.");
 
-        await fetchTransactions();
-        await fetchBadges();
+        // Устгасны дараа дэлгэц дээрх хүснэгтийг шууд шинэчилж харуулна
+        fetchTransactions();
 
     } catch (error) {
         alert("Гүйлгээ устгахад алдаа гарлаа: " + error.message);
@@ -248,6 +249,7 @@ window.deleteTransaction = async function(id) {
     }
 }
 
+// HTML дээрх "Гарах" товч ID-аар нь барьж авах
 const btnLogout = document.getElementById('btn-logout');
 
 // Товч дээр дарах үед ажиллах Event Listener залгах
@@ -287,16 +289,18 @@ const budgetMonthInput = document.getElementById('budget-month');
 budgetForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    // Формоос өгөгдөл уншиж авах
     const category = budgetCategoryInput.value;
     const limitAmount = parseFloat(budgetAmountInput.value);
     const monthYear = budgetMonthInput.value; 
-
+    // Нэвтэрсэн хэрэглэгчийг шалгах
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         alert("Сешн дууссан байна!");
         return;
     }
 
+    // Supabase-ийн 'budgets' хүснэгт рүү хадгалах
     const { error } = await supabase
         .from('budgets')
         .insert([
@@ -313,14 +317,12 @@ budgetForm.addEventListener('submit', async (e) => {
     } else {
         alert(`${monthYear} сарын ${category} ангилалд төсөв амжилттай тогтоогдлоо!`);
         budgetForm.reset();
-
-        await checkBudgetBadges(user.id);
-        await fetchBadges();
-
-        const offcanvasElement = document.getElementById('offcanvasBudget');
-        const instance = bootstrap.Offcanvas.getInstance(offcanvasElement) || new bootstrap.Offcanvas(offcanvasElement);
         
-        instance.hide();
+        // Bootstrap Offcanvas цэсийг автоматаар хаах код
+        const instance = bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasBudget'));
+        if (instance) instance.hide();
+        
+        // Доор бичих төсвийн жагсаалтыг шинэчлэх функцийг дуудна
         if (typeof fetchBudgets === 'function') fetchBudgets();
     }
 });
@@ -370,165 +372,4 @@ async function fetchBudgets() {
     });
 
     budgetsContainer.innerHTML = htmlContent;
-}
-
-async function awardBadge(userId, badgeName) {
-    const { data: existingBadge } = await supabase
-        .from('badges')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('badge_name', badgeName)
-        .maybeSingle();
-
-    if (existingBadge) return;
-
-    const { error } = await supabase
-        .from('badges')
-        .insert([
-            {
-                user_id: userId,
-                badge_name: badgeName,
-                awarded_at: new Date().toISOString()
-            }
-        ]);
-
-    if (!error) {
-        alert(`Шинэ шагнал авлаа!\n${badgeName}`);
-        fetchBadges();
-    }
-}
-
-async function fetchBadges() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data: badges } = await supabase
-        .from('badges')
-        .select('*')
-        .eq('user_id', user.id);
-
-    renderBadges(badges || []);
-}
-
-function renderBadges(badges) {
-    const container =
-        document.getElementById('badges-container');
-    if (!container) return;
-    if (badges.length === 0) {
-
-        container.innerHTML =
-            '<p class="text-muted">Шагнал байхгүй байна.</p>';
-
-        return;
-    }
-    let html = '';
-    badges.forEach(badge => {
-
-        html += `
-            <span class="badge bg-warning text-dark fs-6 me-2 mb-2">
-                 ${badge.badge_name}
-            </span>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-async function checkTransactionBadges(userId) {
-
-    const { count: totalTransactions } = await supabase
-        .from('transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-
-    if (totalTransactions >= 1) {
-        await awardBadge(userId, 'Анхны алхам');
-    }
-
-    if (totalTransactions >= 10) {
-        await awardBadge(userId, 'Идэвхтэй хэрэглэгч');
-    }
-
-    if (totalTransactions >= 50) {
-        await awardBadge(userId, 'Үнэнч хэрэглэгч');
-    }
-
-    if (totalTransactions >= 100) {
-        await awardBadge(userId, 'Санхүүгийн мастер');
-    }
-
-    const { count: incomeCount } = await supabase
-        .from('transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('type', 'income');
-
-    if (incomeCount >= 1) {
-        await awardBadge(userId, 'Орлого бүртгэгч');
-    }
-}
-
-async function checkBudgetBadges(userId) {
-
-    const { count: budgetCount } = await supabase
-        .from('budgets')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId);
-
-    if (budgetCount >= 1) {
-        await awardBadge(userId, 'Төлөвлөгч');
-    }
-
-    const { data: budgets } = await supabase
-        .from('budgets')
-        .select('category')
-        .eq('user_id', userId);
-
-    if (budgets) {
-
-        const uniqueCategories =
-            [...new Set(budgets.map(b => b.category))];
-
-        if (uniqueCategories.length >= 3) {
-            await awardBadge(userId, 'Төсвийн мастер');
-        }
-    }
-
-    await checkDisciplineBadge(userId);
-}
-
-async function checkDisciplineBadge(userId) {
-
-    const { data: budgets } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('user_id', userId);
-
-    if (!budgets || budgets.length === 0) return;
-
-    let qualifies = false;
-
-    for (const budget of budgets) {
-
-        const { data: expenses } = await supabase
-            .from('transactions')
-            .select('amount, date')
-            .eq('user_id', userId)
-            .eq('type', 'expense')
-            .eq('category', budget.category);
-
-        let totalExpense = 0;
-
-        if (expenses) {
-            expenses.forEach(tx => {
-                totalExpense += Number(tx.amount);
-            });
-        }
-
-        if (totalExpense <= Number(budget.limit_amount)) {
-            qualifies = true;
-        }
-    }
-
-    if (qualifies) {
-        await awardBadge(userId, 'Сахилга баттай');
-    }
 }
